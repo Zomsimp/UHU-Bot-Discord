@@ -16,6 +16,9 @@ const backupData = () => {
             const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
             const backupPath = path.join(backupDir, `data_backup_${timestamp}.json`);
             fs.copyFileSync(dataPath, backupPath);
+            console.log(`📦 Đã backup dữ liệu vào: ${path.basename(backupPath)}`);
+        } else {
+            console.warn('⚠️ Không thể backup: data.json không tồn tại');
         }
     } catch (err) {
         console.error('❌ Lỗi backup:', err);
@@ -49,6 +52,12 @@ const ANIMALS = [
 const cooldowns = new Map();
 const isPlaying = new Set(); 
 const processingInteractions = new Set(); // Track interactions đang xử lý
+let lastDataHash = null; // Track hash của data để phát hiện thay đổi bất ngờ
+
+// Hàm tính hash đơn giản của data
+const getDataHash = (data) => {
+    return JSON.stringify(data).length + '_' + Object.keys(data).length;
+};
 
 // Hàm reply an toàn (xử lý lỗi Unknown interaction)
 const safeReply = async (interaction, options) => {
@@ -83,18 +92,48 @@ const getData = () => {
                 console.log(`✅ Khôi phục từ backup: ${backups[0]}`);
                 fs.copyFileSync(latestBackup, dataPath);
                 const content = fs.readFileSync(dataPath, 'utf8');
-                return JSON.parse(content);
+                const data = JSON.parse(content);
+                lastDataHash = getDataHash(data);
+                return data;
             }
         }
         
         // Nếu không có backup, tạo file mới
         console.log('📝 Tạo file data.json mới...');
         fs.writeFileSync(dataPath, '{}', 'utf8');
+        lastDataHash = getDataHash({});
         return {};
     }
     try {
         const content = fs.readFileSync(dataPath, 'utf8');
         const data = (content && content.trim() !== "") ? JSON.parse(content) : {};
+        const currentHash = getDataHash(data);
+        
+        // Phát hiện data bị reset bất ngờ
+        if (lastDataHash && lastDataHash !== currentHash && Object.keys(data).length < 2) {
+            console.error('🚨 PHÁT HIỆN DATA BỊ RESET BẤT NGỜ!');
+            console.error(`   Trước: ${lastDataHash}, Sau: ${currentHash}`);
+            
+            // Thử khôi phục từ backup
+            if (fs.existsSync(backupDir)) {
+                const backups = fs.readdirSync(backupDir)
+                    .filter(f => f.startsWith('data_backup_'))
+                    .sort()
+                    .reverse();
+                
+                if (backups.length > 0) {
+                    const latestBackup = path.join(backupDir, backups[0]);
+                    console.log(`🔄 Tự động khôi phục từ: ${backups[0]}`);
+                    fs.copyFileSync(latestBackup, dataPath);
+                    const backupContent = fs.readFileSync(dataPath, 'utf8');
+                    const backupData = JSON.parse(backupContent);
+                    lastDataHash = getDataHash(backupData);
+                    return backupData;
+                }
+            }
+        }
+        
+        lastDataHash = currentHash;
         console.log(`📖 Đã đọc dữ liệu (${Object.keys(data).length} users)`);
         return data;
     } catch (err) {
@@ -112,18 +151,32 @@ const getData = () => {
                 console.log(`⚠️ File data.json corrupt! Khôi phục từ: ${backups[0]}`);
                 fs.copyFileSync(latestBackup, dataPath);
                 const content = fs.readFileSync(dataPath, 'utf8');
-                return JSON.parse(content);
+                const data = JSON.parse(content);
+                lastDataHash = getDataHash(data);
+                return data;
             }
         }
+        lastDataHash = getDataHash({});
         return {};
     }
 };
 
 const saveData = (data) => {
-    if (!data) return;
-    backupData(); // Backup trước khi ghi
-    fs.writeFileSync(dataPath, JSON.stringify(data, null, 2));
-    console.log(`💾 Đã lưu dữ liệu (${Object.keys(data).length} users)`);
+    if (!data) {
+        console.error('❌ LỖI: saveData được gọi với data null/undefined!');
+        return;
+    }
+
+    const userCount = Object.keys(data).length;
+    console.log(`💾 Đang lưu dữ liệu (${userCount} users)...`);
+
+    try {
+        backupData(); // Backup trước khi ghi
+        fs.writeFileSync(dataPath, JSON.stringify(data, null, 2));
+        console.log(`✅ Đã lưu thành công dữ liệu (${userCount} users)`);
+    } catch (error) {
+        console.error('❌ LỖI khi lưu data.json:', error);
+    }
 };
 
 client.on(Events.ClientReady, (c) => console.log(`✅ Bot ${c.user.tag} đã online!`));
