@@ -1,3 +1,17 @@
+# Dữ liệu người chơi (không commit lên git)
+data.json
+backups/
+.env
+node_modules/
+package-lock.json
+
+# Dữ liệu người chơi (không commit lên git)
+data.json
+backups/
+.env
+node_modules/
+package-lock.json
+
 # Prerequisites
 *.d
 
@@ -36,6 +50,9 @@
 *.exe
 *.out
 *.app
+
+node_modules
+*.env
 
 # debug information files
 *.dwo

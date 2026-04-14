@@ -1,0 +1,28 @@
+{
+  "name": "uhu-bot-discord",
+  "version": "1.0.0",
+  "description": "OHO",
+  "keywords": [
+    "Na212008./??"
+  ],
+  "homepage": "https://github.com/Zomsimp/UHU-Bot-Discord#readme",
+  "bugs": {
+    "url": "https://github.com/Zomsimp/UHU-Bot-Discord/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Zomsimp/UHU-Bot-Discord.git"
+  },
+  "license": "ISC",
+  "author": "UHO BOT",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "canvas": "^3.2.3",
+    "discord.js": "^14.26.2",
+    "dotenv": "^17.4.2"
+  }
+}
